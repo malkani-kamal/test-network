@@ -1,0 +1,7 @@
+open the http://localhost:5984/_utils/# in firefox.
+All the input data will be validated at sdk level and should have fixed type and length.
+I kept the token structure separte in case we need to create multiple tokens.
+i kept the mint function only for transfer token first time.
+we can create record of transfer in ledger currently i have jsut reduced the balances
+
+i have kept the tokenId keeping in mind that minter can own different type of tokens

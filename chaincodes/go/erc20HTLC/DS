@@ -1,0 +1,19 @@
+tokenMaster
+
+tokenId,    tokenName,       tokenOrg,      tokenAvailable,     tokenIssued,        tokenType
+1           btc              org1           100           ,     80                  Fungible   
+
+
+
+accountMaster
+accountId,  accountName,    tokenId,  tokenConversion,    tokenAmount
+1           bob             1         1.2                 40
+1           alex            1         1.2                 40
+
+
+
+
+
+
+
+

@@ -1,0 +1,91 @@
+https://hyperledger-fabric.readthedocs.io/en/latest/deploy_chaincode.html
+
+cd ~/test-network
+
+
+cd test-network
+export PATH=${PWD}/bin:$PATH
+export FABRIC_CFG_PATH=$PWD/config/
+ls
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_LOCALMSPID="Org1MSP"
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
+export CORE_PEER_ADDRESS=localhost:7051
+peer lifecycle chaincode queryinstalled
+
+Create Token Def
+----------------
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"CreateToken","Args":["{\"tokenId\":\"5\",\"tokenName\":\"UPTOKEN\",\"tokenOrg\":\"1\",\"tokenAvailable\":100,\"tokenIssued\":0,\"tokenType\":\"FUNGIBLE\"}"]}'
+
+{
+	"tokenId":"1"
+	"tokenName":"UPTOKEN"
+	"tokenOrg":"1"
+	"tokenAvailable":"100"
+	"tokenIssued":"0"
+	"tokenType":"FUNGIBLE"
+}
+
+
+
+
+Create Transaction
+------------------
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"MintToken","Args":["{\"toAccountId\":\"kamal\",\"tokenId\":\"5\",\"conversionRate\":1,\"amount\":10}"]}'
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"MintToken","Args":["{\"toAccountId\":\"Bob\",\"tokenId\":\"5\",\"conversionRate\":1,\"amount\":10}"]}'
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Transfer","Args":["{\"fromAccountId\":\"Bob\",\"toAccountId\":\"Alex\",\"tokenId\":\"5\",\"conversionRate\":1,\"amount\":105}"]}'
+
+//TransferConditional
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"TransferConditional","Args":["Lock-7", "FA835FB5DA1FBBC3988516B4059E18B4ADEB0E2FACDBC3457AC2CFA5EFEFDD06", "30", "{\"fromAccountId\":\"Alex\",\"toAccountId\":\"Bob\",\"tokenId\":\"5\",\"conversionRate\":1,\"amount\":7}"]}'
+
+//Claim
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Claim","Args":["Lock-2", "kamal"]}'
+
+//Revert
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Revert","Args":["Lock-6"]}'
+
+
+{
+	"toAccountId":"kamal",
+	"tokenId":"5",
+	"conversionRate":1,
+	"amount":10
+}
+
+Transfer
+{
+	"fromAccountId":"Bob"	
+	"toAccountId":"Alex",
+	"tokenId":"5",
+	"conversionRate":1,
+	"amount":5
+}
+
+
+
+
+
+\n
+{
+"idAttribute":'productId',
+"OwnerOrg":'org1',
+"assetType":'product',
+"isActive": true   
+}
+
+
+{
+	IdAttribute string                `json:"idAttribute"`
+	OwnerOrg    string                `json:"ownerOrgId"`
+	DocType     string                `json:"docType,omitempty" metadata:",optional"`
+	Type        string                `json:"assetType"`
+	IsActive    bool                  `json:"isActive"`
+	References  []ReferenceDefinition `json:"references,omitempty" metadata:",optional"`
+	CreatedAt   string                `json:"createdAt"`
+	UpdatedAt   string                `json:"updatedAt"`
+	CreatedBy   metadata.User         `json:"createdBy"`
+	UpdatedBy   metadata.User         `json:"updatedBy"`
+}

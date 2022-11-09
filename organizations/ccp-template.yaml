@@ -1,0 +1,72 @@
+---
+name: test-network-org${ORG}
+version: 1.0.0
+client:
+  organization: Org${ORG}
+  connection:
+    timeout:
+      peer:
+        endorser: "300"
+  credentialStore:
+    path: ../organizations/peerOrganizations/org${ORG}.example.com/msp
+  tlsCerts:
+    client:
+      cert:
+        pem: |
+          ${MSP_SIGNCERT} 
+      key:
+        pem: |
+          ${MSP_KEYSTORE}
+channels:
+  spydrachannel:
+    orderers:
+    - orderer.example.com
+    peers:
+      peer0.org1.example.com:
+        chaincodeQuery: true
+        endorsingPeer: true
+        eventSource: true
+        ledgerQuery: true
+      peer0.org2.example.com:
+        chaincodeQuery: true
+        endorsingPeer: true
+        eventSource: true
+        ledgerQuery: true
+organizations:
+  Org${ORG}:
+    mspid: Org${ORG}MSP
+    cryptoPath: ./organizations/peerOrganizations/org${ORG}.example.com/msp
+    peers:
+      - peer0.org${ORG}.example.com
+    certificateAuthorities:
+      - ca.org${ORG}.example.com
+orderers:
+  orderer.example.com:
+    url: grpcs://orderer.example.com:7050
+    tlsCACerts:
+        pem: |
+          ${ORDERER_TLS} 
+peers:
+  peer0.org${ORG}.example.com:
+    url: grpcs://peer0.org${ORG}.example.com:${P0PORT}
+    tlsCACerts:
+      pem: |
+          ${PEERPEM}
+    grpcOptions:
+      ssl-target-name-override: peer0.org${ORG}.example.com
+      hostnameOverride: peer0.org${ORG}.example.com
+certificateAuthorities:
+  ca.org${ORG}.example.com:
+    url: https://ca.org${ORG}.example.com:${CAPORT}
+    caName: ca-org${ORG}
+    tlsCACerts:
+      pem:
+        - |
+          ${CAPEM}
+    cryptoPath: ./organizations/peerOrganizations/org${ORG}.example.com/msp
+    registrar:
+      enrollId: admin
+      enrollSecret: adminpw
+    grpcOptions:
+      ssl-target-name-override: org${ORG}.example.com
+      hostnameOverride: org${ORG}.example.com

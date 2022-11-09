@@ -1,0 +1,190 @@
+version: "3.7"
+
+networks:
+  test:
+    name: fabric_test
+
+volumes:
+  zookeeper_data:
+  kafka_data:
+  wallet:
+  ipfs-staging:
+  ipfs-data:
+  pgdata:
+  walletstore:
+
+services:
+  mongo:
+    container_name: mongo
+    image: mongo:latest
+    labels:
+      service: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - 27017:27017
+    networks:
+      - test
+
+  zookeeper:
+    container_name: zookeeper
+    image: docker.io/bitnami/zookeeper:3.8
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - test
+
+  kafka:
+    container_name: kafka
+    image: docker.io/bitnami/kafka:3.2
+    ports:
+      - "9093:9093"
+    volumes:
+      - "kafka_data:/bitnami"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    depends_on:
+      - zookeeper
+    networks:
+      - test
+
+  ipfs:
+    container_name: ipfs
+    image: ipfs/go-ipfs:latest
+    volumes:
+      - ipfs-staging:/export
+      - ipfs-data:/data/ipfs
+    ports:
+      - 5002:4001
+      - 5002:4001/udp
+      - 8080:8080
+      - 5001:5001
+    networks:
+      - test
+
+  blockchain-microservice:
+    container_name: blockchain-microservice
+    image: blockchain-microservice:development
+    environment:
+      - ENV=DEV
+      - HOME=/home
+      - APP_PORT=4001
+      - AWS_REGION=us-east-1
+      - JWT_KEY=TopSecret
+      - MONGO_CONNECTION_STRING=mongodb://root:example@mongo:27017
+      - MONGO_DATABASE_NAME=blockchain-microservice
+      - MONGO_DATABASE_USER=root
+      - MONGO_DATABASE_USER_PASSWORD=example
+      - CA_ID=ca.org1.example.com
+      - CA_ADMIN_USERNAME=admin
+      - CA_ADMIN_PASSWORD=adminpw
+      # - KAFKA_BROKERS=b-1-public.spydraaayush.jzfm80.c22.kafka.us-east-1.amazonaws.com:9198
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_GROUP_ID=blockchain-microservice
+      - KAFKA_BLOCKCHAIN_TOPIC=asset
+      - KAFKA_EVENT_TOPIC=events
+      - CLIENT_ID=asset-management
+      - EVENT_CHANNEL=spydrachannel
+      - EVENT_CONTRACTS=asset
+      - EVENT_BLOCKCHAIN_MSP_ID=Org1MSP
+      - EVENT_BLOCKCHAIN_ORG_ID=0
+      - EVENT_BLOCKCHAIN_ORG_NAME=spydra
+      - EVENT_BLOCKCHAIN_USER_ID=0
+      - EVENT_BLOCKCHAIN_USER_NAME=microservice
+      - IPFS_NODE=http://ipfs:5001
+    volumes:
+      - ~/.aws:/home/.aws
+      - ../organizations/peerOrganizations/org1.example.com/connection-org1.json:/app/microservice/connection-profile.json
+      - wallet:/app/microservice/wallet
+    ports:
+      - 4001:4001
+    networks:
+      - test
+    depends_on:
+      - ca.org1.example.com
+      - kafka
+      - mongo
+
+  asset-microservice:
+    container_name: asset-microservice
+    image: asset-microservice:development
+    environment:
+      - APP_PORT=4002
+      - JWT_KEY=TopSecret
+      - CONTRACT_NAME=asset
+      - CHANNEL_NAME=spydrachannel
+      - BLOCKCHAIN_MICROSERVICE_URL=http://blockchain-microservice:4001
+    ports:
+      - 4002:4002
+    networks:
+      - test
+
+  # explorerdb:
+  #   container_name: explorerdb
+  #   image: hyperledger/explorer-db:latest
+  #   environment:
+  #     - DATABASE_DATABASE=fabricexplorer
+  #     - DATABASE_USERNAME=hppoc
+  #     - DATABASE_PASSWORD=password
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: "pg_isready -h localhost -p 5432 -q -U postgres"
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #   networks:
+  #     - test
+
+  # explorer:
+  #   image: hyperledger/explorer:latest
+  #   container_name: explorer
+  #   environment:
+  #     - DATABASE_HOST=explorerdb
+  #     - DATABASE_DATABASE=fabricexplorer
+  #     - DATABASE_USERNAME=hppoc
+  #     - DATABASE_PASSWD=password
+  #     - LOG_LEVEL_APP=info
+  #     - LOG_LEVEL_DB=info
+  #     - LOG_LEVEL_CONSOLE=debug
+  #     - LOG_CONSOLE_STDOUT=true
+  #     - DISCOVERY_AS_LOCALHOST=false
+  #     - PORT=8081
+  #   volumes:
+  #     - ../config/explorer.json:/opt/explorer/app/platform/fabric/config.json
+  #     - ../organizations/peerOrganizations/org1.example.com/connection-org1.json:/opt/explorer/app/platform/fabric/connection-profile.json
+  #     - ../organizations:/tmp/crypto
+  #     - walletstore:/opt/explorer/wallet
+  #   ports:
+  #     - 8081:8081
+  #   depends_on:
+  #     explorerdb:
+  #       condition: service_healthy
+  #   networks:
+  #     - test
+
+  # kafka-explorer:
+  #   container_name: kafka-explorer
+  #   image: digitsy/kafka-magic
+  #   environment:
+  #     - KAFKA_BOOTSTRAP_BROKERS=kafka:9092
+  #   ports:
+  #     - 8082:80
+  #   networks:
+  #     - test
+
+  swagger:
+    container_name: swagger
+    image: swaggerapi/swagger-editor
+    ports:
+      - 8081:8080
