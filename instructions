@@ -1,3 +1,40 @@
+
+Token definition is create considering one ledger is managing multiple type of tokens. 
+While creating Minter's account accountId and tokenId is used in composite key.  One minter can hold different types of tokens.
+
+	//checking the existing token balance and increasing if tokens are already available
+
+
+
+
+
+
+
+Chaincode invoke successful. result: status:200 payload:"Timelock still not expired and token are yet open for claim."
+
+
+Chaincode invoke successful. result: status:200 payload:"Tokens claimed successfully!" 
+
+
+Chaincode invoke successful. result: status:200 payload:"Tokens claimed unsuccessful!  Timelock expired." 
+
+
+
+
+
+kamal@kamal-Latitude-3420:~/test-network$ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"TransferConditional","Args":["Lock-13", "FA835FB5DA1FBBC3988516B4059E18B4ADEB0E2FACDBC3457AC2CFA5EFEFDD06", "30", "{\"fromAccountId\":\"Alex\",\"toAccountId\":\"Bob\",\"tokenId\":\"5\",\"conversionRate\":1,\"amount\":8}"]}'
+2022-11-09 23:54:48.862 IST 0001 INFO [chaincodeCmd] chaincodeInvokeOrQuery -> Chaincode invoke successful. result: status:200 payload:"Conditional transfer successful! Hash Lock created." 
+kamal@kamal-Latitude-3420:~/test-network$ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Claim","Args":["Lock-13", "kamal"]}'
+2022-11-09 23:55:00.808 IST 0001 INFO [chaincodeCmd] chaincodeInvokeOrQuery -> Chaincode invoke successful. result: status:200 payload:"Tokens claimed unsuccessful!  Timelock expired." 
+kamal@kamal-Latitude-3420:~/test-network$ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Claim","Args":["Lock-13", "kamal"]}'
+2022-11-09 23:58:15.053 IST 0001 INFO [chaincodeCmd] chaincodeInvokeOrQuery -> Chaincode invoke successful. result: status:200 payload:"Tokens claimed successfully!" 
+kamal@kamal-Latitude-3420:~/test-network$ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C spydrachannel -n erc20 --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Revert","Args":["Lock-12"]}'
+2022-11-09 23:58:26.736 IST 0001 INFO [chaincodeCmd] chaincodeInvokeOrQuery -> Chaincode invoke successful. result: status:200 payload:"Timelock still not expired and token are yet open for claim." 
+
+
+
+
+
 open the http://localhost:5984/_utils/# in firefox.
 All the input data will be validated at sdk level and should have fixed type and length.
 I kept the token structure separte in case we need to create multiple tokens.

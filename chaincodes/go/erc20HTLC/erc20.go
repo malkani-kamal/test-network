@@ -35,6 +35,8 @@ type Transaction struct {
 	Amount         int    `json:"amount"`
 }
 
+//Create token definition. TokenSupply, TokenIssued, TokenType, TokenName.
+//There can be multiple types of Token available
 func (contract *SmartContract) CreateToken(ctx contractapi.TransactionContextInterface, tokenDefinitionsData string) (err error) {
 
 	fmt.Printf("CreateToken start-->")
@@ -56,6 +58,8 @@ func (contract *SmartContract) CreateToken(ctx contractapi.TransactionContextInt
 	return nil
 }
 
+//MintToken will add the token to Minter's account if token's are available in Token Definition.
+//It will also reduce the number of tokens from Token Definition.
 func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInterface, transaction string) (string, error) {
 	fmt.Printf("MintToken: %s", transaction)
 
@@ -70,6 +74,7 @@ func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInter
 	account.TokenId = transactionData.TokenId
 	key, _ := ctx.GetStub().CreateCompositeKey("account", []string{account.AccountId, account.TokenId})
 
+	//checking the existing token balance and increasing if tokens are already available
 	balance, _ := contract.GetBalance(ctx, key)
 	fmt.Println("balance-", balance)
 	if balance == -1 {
@@ -80,6 +85,7 @@ func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInter
 
 	fmt.Println(transactionData.FromAccountId, balance)
 
+	//Checking if Token definition have token supply available
 	var token Tokens
 	tokenAccount, err := ctx.GetStub().GetState(account.TokenId)
 	err = json.Unmarshal(tokenAccount, &token)
@@ -96,6 +102,7 @@ func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInter
 
 	fmt.Println("Checked tokens has balance")
 
+	//Adding token to Minters account balance
 	accountTxn, err := json.Marshal(account)
 	err = ctx.GetStub().PutState(key, accountTxn)
 	if err != nil {
@@ -103,6 +110,7 @@ func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInter
 	}
 	fmt.Println("Account updated with token")
 
+	//Reducing token from token supply.
 	tokenTxn, err := json.Marshal(token)
 	err = ctx.GetStub().PutState(account.TokenId, tokenTxn)
 	if err != nil {
@@ -114,6 +122,7 @@ func (contract *SmartContract) MintToken(ctx contractapi.TransactionContextInter
 	return "success", nil
 }
 
+//Function to check the Toke balance of particular account.
 func (contract *SmartContract) GetBalance(ctx contractapi.TransactionContextInterface, id string) (int, error) {
 
 	fmt.Printf("GetBalance: %s", id)
@@ -141,6 +150,7 @@ func (contract *SmartContract) GetBalance(ctx contractapi.TransactionContextInte
 	return account.BalanceTokens, nil
 }
 
+//Tansferring token from one account to other account
 func (contract *SmartContract) transactToken(ctx contractapi.TransactionContextInterface, key string, amount int, action string) (string, error) {
 
 	fmt.Printf("BurnToken-->", key, amount)
@@ -153,9 +163,11 @@ func (contract *SmartContract) transactToken(ctx contractapi.TransactionContextI
 		return "fail", err
 	}
 
+	//If operator is + then adding the balance else reducing the balance.
 	if action == "+" {
 		account.BalanceTokens += amount
 	} else {
+		//Checking the balance before reducing the number of tokens
 		if account.BalanceTokens < amount {
 			fmt.Errorf("Insufficient balance in account!")
 			return "fail", fmt.Errorf("Insufficient balance in account!")
@@ -163,6 +175,7 @@ func (contract *SmartContract) transactToken(ctx contractapi.TransactionContextI
 		account.BalanceTokens -= amount
 	}
 
+	//Updating the token balance in the ledger.
 	accountTxn, _ := json.Marshal(account)
 	err = ctx.GetStub().PutState(key, accountTxn)
 	if err != nil {
@@ -181,13 +194,17 @@ func (contract *SmartContract) Transfer(ctx contractapi.TransactionContextInterf
 		return "fail", nil
 	}
 
+	//creating composite key AccountId+TokenId
 	fromKey, _ := ctx.GetStub().CreateCompositeKey("account", []string{transactionData.FromAccountId, transactionData.TokenId})
+	//First reducting the balance from From Account
 	msg, err := contract.transactToken(ctx, fromKey, transactionData.Amount, "-")
 	if err != nil {
+		//Return incase insufficient balance error or any other error while reducing the balance
 		return msg, fmt.Errorf("%s", err.Error())
 	}
 
 	toKey, _ := ctx.GetStub().CreateCompositeKey("account", []string{transactionData.ToAccountId, transactionData.TokenId})
+	//Adding the balance to To Account
 	contract.transactToken(ctx, toKey, transactionData.Amount, "+")
 
 	return "success", nil
@@ -213,21 +230,22 @@ func (contract *SmartContract) TransferConditional(ctx contractapi.TransactionCo
 		return "fail", nil
 	}
 
+	//Reducing the balance from From Account
 	fromKey, _ := ctx.GetStub().CreateCompositeKey("account", []string{transactionData.FromAccountId, transactionData.TokenId})
 	msg, err := contract.transactToken(ctx, fromKey, transactionData.Amount, "-")
 	if err != nil {
 		return msg, fmt.Errorf("%s", err.Error())
 	}
 
-	timeLockconv, err := strconv.ParseInt(timelock, 10, 64)
-	fmt.Println("timeLockconv:", timeLockconv)
+	// timeLockconv, err := strconv.ParseInt(timelock, 10, 64)
+	// fmt.Println("timeLockconv:", timeLockconv)
 
-	timeInt, err := strconv.ParseInt(timelock, 10, 64)
+	timeInt, err := strconv.Atoi(timelock)
 	if err != nil {
 		return "Error converting timeLock.", fmt.Errorf("%s", err.Error())
 	}
 
-	expiryTime := time.Now().Unix() + timeInt
+	expiryTime := time.Now().Add(time.Minute * time.Duration(timeInt)).Unix()
 
 	var hashTimeLock HashTimeLock
 
@@ -241,6 +259,7 @@ func (contract *SmartContract) TransferConditional(ctx contractapi.TransactionCo
 
 	hashTimeLockAsBytes, _ := json.Marshal(hashTimeLock)
 
+	//Parking the transaction in hashTimeLock
 	ctx.GetStub().PutState(lockId, hashTimeLockAsBytes)
 
 	return "Conditional transfer successful! Hash Lock created.", nil
@@ -273,11 +292,13 @@ func (contract *SmartContract) Claim(ctx contractapi.TransactionContextInterface
 
 	fmt.Println("currTime-", currTime)
 
-	if hashTimeLock.TimeLock < currTime {
+	//Checking if hashTimeLock expired or no
+	if hashTimeLock.TimeLock > currTime {
+		//Adding balance to ToAccount from hashLockTime
 		toKey, _ := ctx.GetStub().CreateCompositeKey("account", []string{hashTimeLock.ToID, hashTimeLock.TokenId})
 		contract.transactToken(ctx, toKey, hashTimeLock.Amount, "+")
 
-		// delete lock
+		// Deleting hashTimeLock after adding the balance to claimer account
 		ctx.GetStub().DelState(lock_id)
 
 		fmt.Println("Timelock still active. Actual transaction timestamp:", hashTimeLock.TimeLock, "Actual timelock:", currTime)
@@ -297,13 +318,15 @@ func (contract *SmartContract) Revert(ctx contractapi.TransactionContextInterfac
 
 	currTime := time.Now().Unix()
 	fmt.Println("currTime-", currTime)
-	if hashTimeLock.TimeLock < currTime {
+	if hashTimeLock.TimeLock > currTime {
 		return "Timelock still not expired and token are yet open for claim."
 	} else {
+
+		//Adding balance to FromAccount from hashLockTime
 		fromKey, _ := ctx.GetStub().CreateCompositeKey("account", []string{hashTimeLock.FromID, hashTimeLock.TokenId})
 		contract.transactToken(ctx, fromKey, hashTimeLock.Amount, "+")
 
-		// delete lock
+		// Deleting hashTimeLock after adding the balance to Minters account
 		ctx.GetStub().DelState(lock_id)
 		fmt.Println("Revert of Tokens successful.")
 		return "Revert of Tokens successful to Minter."
